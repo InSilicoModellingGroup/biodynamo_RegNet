@@ -20,6 +20,8 @@
 
 namespace bdm {
 
+enum Substances { kCytokine };
+
 inline void vdp_rhs(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) {
   const double mu = 1000.0;
   //
@@ -56,15 +58,31 @@ inline int Simulate(int argc, const char** argv) {
     param->visualize_agents["Cell"] = { "diameter_", "volume_" };
     param->statistics = false;
     param->simulation_time_step = 1.0;
+    param->visualize_diffusion = { Param::VisualizeDiffusion{"cytokine", true, true} };
+    param->calculate_gradients = false;
+    param->diffusion_method = "euler";
   };
 
   Simulation sim(argc, argv, set_parameters);
 
   auto* rm = sim.GetResourceManager();
 
+  // agent-based model simulation time-step
+  const real_t dt_BDM = sim.GetParam()->simulation_time_step;
+  // regulatory network simulation time-step
+  const real_t dt_RN = 1000.0;
+  // BioDynaMo's diffusion grid sample points in each dimension
+  int n_DG = 51;
+
+  ModelInitializer::DefineSubstance(kCytokine, "cytokine", 0./dt_BDM, 0./dt_BDM, n_DG);
+  ModelInitializer::AddBoundaryConditions(
+      kCytokine, BoundaryConditionType::kNeumann,
+      std::make_unique<ConstantBoundaryCondition>(0)
+    );
+
   auto* cell = new Cell({0., 0., 0.});
   cell->SetDiameter(1.0);
-  cell->AddBehavior(new RegulatoryNetwork(1000.0, {1., 1.}, vdp_rhs, vdp_jacob, vdp_out));
+  cell->AddBehavior(new RegulatoryNetwork(dt_RN, {1., 1.}, vdp_rhs, vdp_jacob, vdp_out));
 
   rm->AddAgent(cell);
 
