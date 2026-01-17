@@ -39,6 +39,11 @@ inline void vdp_jacob (const boost_vector_t& x, boost_matrix_t& jac, real_t t, b
   dfdt[1] = 0.0;
 }
 
+inline void vdp_out(const boost_vector_t& x, real_t t) {
+  std::cout << ' ' << t << std::flush;
+  std::cout << ':' << x[0] << ' ' << x[1] << std::endl;
+}
+
 inline int Simulate(int argc, const char** argv) {
   // https://biodynamo.github.io/api/structbdm_1_1Param.html
   auto set_parameters = [](Param* param) {
@@ -59,7 +64,7 @@ inline int Simulate(int argc, const char** argv) {
 
   auto* cell = new Cell({0., 0., 0.});
   cell->SetDiameter(1.0);
-  cell->AddBehavior(new RegulatoryNetwork(1000.0, {1., 1.}, vdp_rhs, vdp_jacob));
+  cell->AddBehavior(new RegulatoryNetwork(1000.0, {1., 1.}, vdp_rhs, vdp_jacob, vdp_out));
 
   rm->AddAgent(cell);
 

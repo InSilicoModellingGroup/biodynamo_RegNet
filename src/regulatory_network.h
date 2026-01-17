@@ -37,12 +37,14 @@ class RegulatoryNetwork : public Behavior {
 
   RegulatoryNetwork(real_t dt, const std::vector<real_t>& x,
       const std::function<void(const boost_vector_t&, boost_vector_t&, real_t)>& rhs,
-      const std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)>& jacob) {
+      const std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)>& jacob,
+      const std::function<void(const boost_vector_t&, real_t)>& out) {
     AlwaysCopyToNew();
     SetInitialSpecies(x);
     time_step_ = dt;
     rhs_ = rhs;
     jacob_ = jacob;
+    out_ = out;
   }
 
   virtual ~RegulatoryNetwork() = default;
@@ -59,6 +61,7 @@ class RegulatoryNetwork : public Behavior {
       //
       rhs_ = gr->rhs_;
       jacob_ = gr->jacob_;
+      out_ = gr->out_;
     } else {
       Log::Fatal("RegulatoryNetwork::EventConstructor",
                  "other was not of type RegulatoryNetwork");
@@ -80,7 +83,7 @@ class RegulatoryNetwork : public Behavior {
     // perform time integration
     integrate_const(
       stepper, std::make_pair(rhs_ , jacob_), current_species_,
-      current_time_, current_time_+time_step_, time_step_/1000
+      current_time_, current_time_+time_step_, time_step_/1000, out_
     );
     // update the time of the regulatory network
     current_time_ += time_step_;
@@ -109,7 +112,7 @@ class RegulatoryNetwork : public Behavior {
 
   std::function<void(const boost_vector_t&, boost_vector_t&, real_t)> rhs_;
   std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)> jacob_;
-
+  std::function<void(const boost_vector_t&, real_t)> out_;
 };
 
 }  // namespace bdm
