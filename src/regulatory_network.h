@@ -26,6 +26,7 @@
 
 typedef boost::numeric::ublas::vector<double>  boost_vector_t;
 typedef boost::numeric::ublas::matrix<double>  boost_matrix_t;
+typedef std::map<std::string, bdm::DiffusionGrid*>  std_map_bdm_dg_t;
 
 namespace bdm {
 

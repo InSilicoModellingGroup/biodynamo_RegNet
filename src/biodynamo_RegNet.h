@@ -23,19 +23,27 @@ namespace bdm {
 enum Substances { kCytokine };
 
 struct ODE_system {
-  ODE_system(real_t a, real_t b, real_t c) : alpha_(a), beta_(b), gamma_(c) {}
+  ODE_system(Cell* cell, real_t a, real_t b, real_t c, const std_map_bdm_dg_t& dg_map)
+  : c_(cell), alpha_(a), beta_(b), gamma_(c), dg_(dg_map) {}
 
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) const {
+    auto& crd = c_->GetPosition();
+    auto& dg = dg_.find("cytokine")->second;
+    const real_t ecm_c = dg->GetValue(crd);
+
     dxdt[0] = alpha_ * x[1];
     dxdt[1] = beta_ * x[1] - beta_ * x[1] * x[0] * x[0] - gamma_ * x[0];
   }
 
  private:
+  Cell* c_;
   real_t alpha_, beta_, gamma_;
+  std_map_bdm_dg_t dg_;
 };
 
 struct ODE_jacobian {
-  ODE_jacobian(real_t a, real_t b, real_t c) : alpha_(a), beta_(b), gamma_(c) {}
+  ODE_jacobian(Cell* cell, real_t a, real_t b, real_t c, const std_map_bdm_dg_t& dg_map)
+  : c_(cell), alpha_(a), beta_(b), gamma_(c), dg_(dg_map) {}
 
   void operator()(const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt) const {
     jac(0, 0) = 0.0;
@@ -48,16 +56,27 @@ struct ODE_jacobian {
   }
 
  private:
+  Cell* c_;
   real_t alpha_, beta_, gamma_;
+  std_map_bdm_dg_t dg_;
 };
 
 struct ODE_output {
-  ODE_output() {}
+  ODE_output(Cell* cell, const std_map_bdm_dg_t& dg_map)
+  : c_(cell), dg_(dg_map) {}
 
   void operator()(const boost_vector_t& x, real_t t) {
-    std::cout << ' ' << t << std::flush;
+    auto& crd = c_->GetPosition();
+
+    std::cout << ' ' << c_->GetUid() << std::flush;
+    std::cout << ':' << crd[0] << ' ' << crd[1] << ' ' << crd[2] << std::flush;
+    std::cout << ':' << t << std::flush;
     std::cout << ':' << x[0] << ' ' << x[1] << std::endl;
   }
+
+ private:
+  Cell* c_;
+  std_map_bdm_dg_t dg_;
 };
 
 inline int Simulate(int argc, const char** argv) {
@@ -94,9 +113,15 @@ inline int Simulate(int argc, const char** argv) {
       std::make_unique<ConstantBoundaryCondition>(0)
     );
 
-  auto* cell = new Cell({0., 0., 0.});
+  std::map<std::string, DiffusionGrid*> dg_m;
+  dg_m.insert(std::make_pair("cytokine", rm->GetDiffusionGrid("cytokine")));
+
+  auto* cell = new Cell({0.01, 0.02, 0.03});
   cell->SetDiameter(1.0);
-  cell->AddBehavior(new RegulatoryNetwork(dt_RN, {1., 1.}, ODE_system(1,1000,1), ODE_jacobian(1,1000,1), ODE_output()));
+  cell->AddBehavior(new RegulatoryNetwork(dt_RN, {1., 1.},
+                                          ODE_system(cell,1,1000,1,dg_m),
+                                          ODE_jacobian(cell,1,1000,1,dg_m),
+                                          ODE_output(cell,dg_m)));
 
   rm->AddAgent(cell);
 
