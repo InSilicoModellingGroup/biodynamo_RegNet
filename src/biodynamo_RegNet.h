@@ -22,29 +22,43 @@ namespace bdm {
 
 enum Substances { kCytokine };
 
-inline void vdp_rhs(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) {
-  const double mu = 1000.0;
-  //
-  dxdt[0] = x[1];
-  dxdt[1] = mu * x[1] - mu * x[1] * x[0] * x[0] - x[0];
-}
+struct ODE_system {
+  ODE_system(real_t a, real_t b, real_t c) : alpha_(a), beta_(b), gamma_(c) {}
 
-inline void vdp_jacob (const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt) {
-  const double mu = 1000.0;
-  //
-  jac(0, 0) = 0.0;
-  jac(0, 1) = 1.0;
-  jac(1, 0) = -2.0 * mu * x[0] * x[1] - 1.0;
-  jac(1, 1) = mu - mu * x[0] * x[0];
-  //
-  dfdt[0] = 0.0;
-  dfdt[1] = 0.0;
-}
+  void operator()(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) const {
+    dxdt[0] = alpha_ * x[1];
+    dxdt[1] = beta_ * x[1] - beta_ * x[1] * x[0] * x[0] - gamma_ * x[0];
+  }
 
-inline void vdp_out(const boost_vector_t& x, real_t t) {
-  std::cout << ' ' << t << std::flush;
-  std::cout << ':' << x[0] << ' ' << x[1] << std::endl;
-}
+ private:
+  real_t alpha_, beta_, gamma_;
+};
+
+struct ODE_jacobian {
+  ODE_jacobian(real_t a, real_t b, real_t c) : alpha_(a), beta_(b), gamma_(c) {}
+
+  void operator()(const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt) const {
+    jac(0, 0) = 0.0;
+    jac(0, 1) = alpha_;
+    jac(1, 0) = -2.0 * beta_ * x[0] * x[1] - gamma_;
+    jac(1, 1) = beta_ - beta_ * x[0] * x[0];
+    //
+    dfdt[0] = 0.0;
+    dfdt[1] = 0.0;
+  }
+
+ private:
+  real_t alpha_, beta_, gamma_;
+};
+
+struct ODE_output {
+  ODE_output() {}
+
+  void operator()(const boost_vector_t& x, real_t t) {
+    std::cout << ' ' << t << std::flush;
+    std::cout << ':' << x[0] << ' ' << x[1] << std::endl;
+  }
+};
 
 inline int Simulate(int argc, const char** argv) {
   // https://biodynamo.github.io/api/structbdm_1_1Param.html
@@ -82,11 +96,11 @@ inline int Simulate(int argc, const char** argv) {
 
   auto* cell = new Cell({0., 0., 0.});
   cell->SetDiameter(1.0);
-  cell->AddBehavior(new RegulatoryNetwork(dt_RN, {1., 1.}, vdp_rhs, vdp_jacob, vdp_out));
+  cell->AddBehavior(new RegulatoryNetwork(dt_RN, {1., 1.}, ODE_system(1,1000,1), ODE_jacobian(1,1000,1), ODE_output()));
 
   rm->AddAgent(cell);
 
-  sim.GetScheduler()->Simulate(10);
+  sim.GetScheduler()->Simulate(1);
 
   std::cout << "Simulation completed successfully!\n" << std::endl;
   return 0;

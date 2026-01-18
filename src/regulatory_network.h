@@ -52,8 +52,7 @@ class RegulatoryNetwork : public Behavior {
   void Initialize(const NewAgentEvent& event) override {
     Base::Initialize(event);
 
-    auto* other = event.existing_behavior;
-    if (auto* gr = dynamic_cast<RegulatoryNetwork*>(other)) {
+    if (auto* gr = dynamic_cast<RegulatoryNetwork*>(event.existing_behavior)) {
       current_time_ = gr->current_time_;
       time_step_ = gr->time_step_;
       current_species_ = gr->current_species_;
@@ -77,7 +76,7 @@ class RegulatoryNetwork : public Behavior {
   void Run(Agent* agent) override {
     // update the previous solution
     previous_species_ = current_species_;
-
+    // initialize the time-integration scheme
     auto stepper =
       boost::numeric::odeint::make_dense_output<boost::numeric::odeint::rosenbrock4<double>>(1.e-6,1.e-6);
     // perform time integration
