@@ -22,19 +22,28 @@ namespace bdm {
 
 enum Substances { kCytokine };
 
+// Van der Pol oscillator
+//     https://juliareach.github.io/ReachabilityAnalysis.jl/dev/generated_examples/VanDerPol/#Van-der-Pol-oscillator
+//
+// d[x0]/d[t] = alpha * x1
+// d[x1]/d[t] = beta * x1 * (1-x0^2) - gamma * x0
+
 class ODE_parameters {
  public:
-  ODE_parameters(real_t a, real_t b, real_t c)
-  : alpha_(a), beta_(b), gamma_(c) {}
+  ODE_parameters(real_t dt, real_t a, real_t b, real_t c)
+  : time_step_(dt), alpha_(a), beta_(b), gamma_(c) {}
   ODE_parameters(const ODE_parameters& p) {
+    time_step_ = p.time_step();
     alpha_ = p.alpha(); beta_ = p.beta(); gamma_ = p.gamma();
   }
 
+  inline real_t time_step() const { return time_step_; }
   inline real_t alpha() const { return alpha_; }
   inline real_t beta()  const { return beta_; }
   inline real_t gamma() const { return gamma_; }
 
  private:
+  real_t time_step_;
   real_t alpha_, beta_, gamma_;
 };
 
@@ -119,7 +128,7 @@ inline int Simulate(int argc, const char** argv) {
   // time-step of the regulatory network solver
   const real_t dt_RN = 1000.0;
   // parameters of the regulatory network
-  const ODE_parameters rn_p(1.e+0, 1.e+3, 1.e+0);
+  const ODE_parameters rn_p(dt_RN, 1.e+0, 1.e+3, 1.e+0);
   // BioDynaMo's diffusion grid sample points in each dimension
   int n_DG = 51;
 
@@ -134,7 +143,7 @@ inline int Simulate(int argc, const char** argv) {
 
   auto* cell = new Cell({0.01, 0.02, 0.03});
   cell->SetDiameter(1.0);
-  cell->AddBehavior(new RegulatoryNetwork(dt_RN, {1., 1.},
+  cell->AddBehavior(new RegulatoryNetwork(rn_p.time_step(), {1., 1.},
                                           ODE_system(cell,rn_p,dg_m),
                                           ODE_jacobian(cell,rn_p,dg_m),
                                           ODE_output(cell,dg_m)));
