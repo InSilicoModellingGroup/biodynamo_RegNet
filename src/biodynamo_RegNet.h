@@ -144,6 +144,8 @@ inline int Simulate(int argc, const char** argv) {
   auto* cell = new Cell({0.01, 0.02, 0.03});
   cell->SetDiameter(1.0);
   cell->AddBehavior(new RegulatoryNetwork(rn_p.time_step(), {1., 1.},
+                                          ODE_solver::Rosenbrock,
+                                          //ODE_solver::RungeKutta,
                                           ODE_system(cell,rn_p,dg_m),
                                           ODE_jacobian(cell,rn_p,dg_m),
                                           ODE_output(cell,dg_m)));

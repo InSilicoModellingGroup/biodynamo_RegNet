@@ -30,13 +30,18 @@ typedef std::map<std::string, bdm::DiffusionGrid*>  std_map_bdm_dg_t;
 
 namespace bdm {
 
+enum class ODE_solver {
+  Rosenbrock,
+  RungeKutta
+};
+
 class RegulatoryNetwork : public Behavior {
   BDM_BEHAVIOR_HEADER(RegulatoryNetwork, Behavior, 1);
 
  public:
   RegulatoryNetwork() { AlwaysCopyToNew(); }
 
-  RegulatoryNetwork(real_t dt, const std::vector<real_t>& x,
+  RegulatoryNetwork(real_t dt, const std::vector<real_t>& x, ODE_solver m,
       const std::function<void(const boost_vector_t&, boost_vector_t&, real_t)>& rhs,
       const std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)>& jacob,
       const std::function<void(const boost_vector_t&, real_t)>& out) {
@@ -46,6 +51,7 @@ class RegulatoryNetwork : public Behavior {
     rhs_ = rhs;
     jacob_ = jacob;
     out_ = out;
+    method_ = m;
   }
 
   virtual ~RegulatoryNetwork() = default;
@@ -53,15 +59,16 @@ class RegulatoryNetwork : public Behavior {
   void Initialize(const NewAgentEvent& event) override {
     Base::Initialize(event);
 
-    if (auto* gr = dynamic_cast<RegulatoryNetwork*>(event.existing_behavior)) {
-      current_time_ = gr->current_time_;
-      time_step_ = gr->time_step_;
-      current_species_ = gr->current_species_;
-      previous_species_ = gr->previous_species_;
+    if (auto* r = dynamic_cast<RegulatoryNetwork*>(event.existing_behavior)) {
+      current_time_ = r->current_time_;
+      time_step_ = r->time_step_;
+      current_species_ = r->current_species_;
+      previous_species_ = r->previous_species_;
       //
-      rhs_ = gr->rhs_;
-      jacob_ = gr->jacob_;
-      out_ = gr->out_;
+      rhs_ = r->rhs_;
+      jacob_ = r->jacob_;
+      out_ = r->out_;
+      method_ = r->method_;
     } else {
       Log::Fatal("RegulatoryNetwork::EventConstructor",
                  "other was not of type RegulatoryNetwork");
@@ -78,13 +85,26 @@ class RegulatoryNetwork : public Behavior {
     // update the previous solution
     previous_species_ = current_species_;
     // initialize the time-integration scheme
-    auto stepper =
-      boost::numeric::odeint::make_dense_output<boost::numeric::odeint::rosenbrock4<double>>(1.e-6,1.e-6);
-    // perform time integration
-    integrate_const(
-      stepper, std::make_pair(rhs_ , jacob_), current_species_,
-      current_time_, current_time_+time_step_, time_step_/1000, out_
-    );
+    if (ODE_solver::Rosenbrock == method_) {
+      auto stepper =
+        boost::numeric::odeint::make_dense_output<boost::numeric::odeint::rosenbrock4<double>>(1.e-6,1.e-6);
+      // perform time integration
+      integrate_const(
+        stepper, std::make_pair(rhs_ , jacob_), current_species_,
+        current_time_, current_time_+time_step_, time_step_/1000, out_
+      );
+    } else if (ODE_solver::RungeKutta == method_) {
+      auto stepper =
+        boost::numeric::odeint::make_dense_output<boost::numeric::odeint::runge_kutta_dopri5<boost_vector_t>>(1.e-6,1.e-6);
+      // perform time integration
+      integrate_const(
+        stepper, rhs_, current_species_,
+        current_time_, current_time_+time_step_, time_step_/1000, out_
+      );
+    } else {
+      Log::Fatal("RegulatoryNetwork::Run",
+                 "invalid type of ODE solution method indicated");
+    }
     // update the time of the regulatory network
     current_time_ += time_step_;
   }
@@ -109,6 +129,8 @@ class RegulatoryNetwork : public Behavior {
   boost_vector_t current_species_ = {};
   /// Previous solution of the species concentration
   boost_vector_t previous_species_ = {};
+  /// Method used for the ODE(s) numerical solution
+  ODE_solver method_;
 
   std::function<void(const boost_vector_t&, boost_vector_t&, real_t)> rhs_;
   std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)> jacob_;
