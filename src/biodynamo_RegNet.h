@@ -89,12 +89,10 @@ struct ODE_output {
   : c_(cell), dg_(dg_map) {}
 
   void operator()(const boost_vector_t& x, real_t t) {
-    auto& crd = c_->GetPosition();
-
-    std::cout << ' ' << c_->GetUid() << std::flush;
-    std::cout << ':' << crd[0] << ' ' << crd[1] << ' ' << crd[2] << std::flush;
-    std::cout << ':' << t << std::flush;
-    std::cout << ':' << x[0] << ' ' << x[1] << std::endl;
+    std::cout << c_->GetUid() << std::flush;
+    std::cout << " : " << c_->GetPosition() << std::flush;
+    std::cout << " : " << t << std::flush;
+    std::cout << " : " << x[0] << ' ' << x[1] << std::endl;
   }
 
  private:
