@@ -85,11 +85,10 @@ class RegulatoryNetwork : public Behavior {
   const boost_vector_t& GetSpecies() const { return current_species_; }
   const real_t& GetSpecie(size_t i) const { return current_species_[i]; }
 
-  /// Method Run() contains the implementation for Runge-Khutta and Euler
-  /// methods for solving ODE(s).
   void Run(Agent* agent) override {
     // update the previous solution
     previous_species_ = current_species_;
+
     // initialize the time-integration scheme
     if (ODE_solver::Euler == method_) {
       const real_t dt = time_step_ / time_subdivision_;
@@ -125,8 +124,10 @@ class RegulatoryNetwork : public Behavior {
       Log::Fatal("RegulatoryNetwork::Run",
                  "invalid type of ODE solution method indicated");
     }
+
     // update the time of the regulatory network
     current_time_ += time_step_;
+
     // print-out the results
     out_(current_species_, current_time_, agent);
   }
@@ -135,7 +136,7 @@ class RegulatoryNetwork : public Behavior {
 
   void SetInitialSpecies(const std::vector<real_t>& x) {
     const size_t n_species = x.size();
-    //
+
     current_species_.resize(n_species);
     previous_species_.resize(n_species);
     for (size_t i=0; i<n_species; i++)
