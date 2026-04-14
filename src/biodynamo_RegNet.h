@@ -28,48 +28,15 @@ enum Substances { kCytokine };
 // d[x0]/d[t] = alpha * x1
 // d[x1]/d[t] = beta * x1 * (1-x0^2) - gamma * x0
 
-class ODE_parameters {
- public:
-  ODE_parameters(real_t dt, real_t a, real_t b, real_t c)
-  : time_step_(dt), alpha_(a), beta_(b), gamma_(c) {}
-  ODE_parameters(const ODE_parameters& p) {
-    time_step_ = p.time_step();
-    alpha_ = p.alpha(); beta_ = p.beta(); gamma_ = p.gamma();
-  }
-
-  inline real_t time_step() const { return time_step_; }
-  inline real_t alpha() const { return alpha_; }
-  inline real_t beta()  const { return beta_; }
-  inline real_t gamma() const { return gamma_; }
-
- private:
-  real_t time_step_;
-  real_t alpha_, beta_, gamma_;
-};
-
-struct ODE_system : public ODE_parameters {
-  ODE_system(Cell* cell, const ODE_parameters& p, const std_map_bdm_dg_t& dg_map)
-  : ODE_parameters(p), c_(cell), dg_(dg_map) {}
-
+struct ODE_system {
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) const {
-    // auto& crd = c_->GetPosition();
-    // auto& dg = dg_.find("cytokine")->second;
-    // const real_t ecm_c = dg->GetValue(crd);
-
     dxdt[0] = t * x[0] + 0.2;
     dxdt[1] = t * x[1] * x[1];
     dxdt[2] = t + x[2] + 3.0;
   }
-
- private:
-  Cell* c_;
-  std_map_bdm_dg_t dg_;
 };
 
-struct ODE_jacobian : public ODE_parameters {
-  ODE_jacobian(Cell* cell, const ODE_parameters& p, const std_map_bdm_dg_t& dg_map)
-  : ODE_parameters(p), c_(cell), dg_(dg_map) {}
-
+struct ODE_jacobian {
   void operator()(const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt) const {
     jac(0, 0) = t;
     jac(0, 1) = 0.0;
@@ -85,26 +52,15 @@ struct ODE_jacobian : public ODE_parameters {
     dfdt[1] = 0.0;
     dfdt[2] = 0.0;
   }
-
- private:
-  Cell* c_;
-  std_map_bdm_dg_t dg_;
 };
 
 struct ODE_output {
-  ODE_output(Cell* cell, const std_map_bdm_dg_t& dg_map)
-  : c_(cell), dg_(dg_map) {}
-
-  void operator()(const boost_vector_t& x, real_t t) {
-    std::cout << c_->GetUid() << std::flush;
-    // std::cout << " : " << c_->GetPosition() << std::flush;
+  void operator()(const boost_vector_t& x, real_t t, const Agent* a) {
+    std::cout << a->GetUid() << std::flush;
+    std::cout << " : " << a->GetPosition() << std::flush;
     std::cout << " : " << t << std::flush;
     std::cout << " : " << x[0] << ' ' << x[1] << ' ' << x[2] << std::endl;
   }
-
- private:
-  Cell* c_;
-  std_map_bdm_dg_t dg_;
 };
 
 inline int Simulate(int argc, const char** argv) {
@@ -133,8 +89,6 @@ inline int Simulate(int argc, const char** argv) {
   const real_t dt_BDM = sim.GetParam()->simulation_time_step;
   // time-step of the regulatory network solver
   const real_t dt_RN = 0.01;
-  // parameters of the regulatory network
-  const ODE_parameters rn_p(dt_RN, 1.e+0, 1.e+3, 1.e+0);
   // BioDynaMo's diffusion grid sample points in each dimension
   int n_DG = 51;
 
@@ -151,13 +105,12 @@ inline int Simulate(int argc, const char** argv) {
   cell->SetDiameter(30);
   cell->SetAdherence(0.4);
   cell->SetMass(1.0);
-  cell->AddBehavior(new RegulatoryNetwork(rn_p.time_step(), 100, {1., 5., 7.},
-                                          ODE_solver::Rosenbrock,
-                                          //ODE_solver::RungeKutta,
-                                          ODE_system(cell,rn_p,dg_m),
-                                          ODE_jacobian(cell,rn_p,dg_m),
-                                          ODE_output(cell,dg_m)));
-
+  cell->AddBehavior(new RegulatoryNetwork(dt_RN, 100, {1., 5., 7.},
+                                          //ODE_solver::Euler,
+                                          //ODE_solver::Rosenbrock,
+                                          ODE_solver::RungeKutta,
+                                          ODE_system(), ODE_jacobian(), ODE_output()));
+  // add this cell into the simulation
   rm->AddAgent(cell);
 
   for (int s=0; s<10; s++)
