@@ -31,6 +31,7 @@ typedef std::map<std::string, bdm::DiffusionGrid*>  std_map_bdm_dg_t;
 namespace bdm {
 
 enum class ODE_solver {
+  Euler,
   Rosenbrock,
   RungeKutta
 };
@@ -41,13 +42,14 @@ class RegulatoryNetwork : public Behavior {
  public:
   RegulatoryNetwork() { AlwaysCopyToNew(); }
 
-  RegulatoryNetwork(real_t dt, const std::vector<real_t>& x, ODE_solver m,
+  RegulatoryNetwork(real_t dt, int n_dt, const std::vector<real_t>& x, ODE_solver m,
       const std::function<void(const boost_vector_t&, boost_vector_t&, real_t)>& rhs,
       const std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)>& jacob,
       const std::function<void(const boost_vector_t&, real_t)>& out) {
     AlwaysCopyToNew();
     SetInitialSpecies(x);
     time_step_ = dt;
+    time_subdivision_ = n_dt;
     rhs_ = rhs;
     jacob_ = jacob;
     out_ = out;
@@ -61,9 +63,11 @@ class RegulatoryNetwork : public Behavior {
 
     if (auto* r = dynamic_cast<RegulatoryNetwork*>(event.existing_behavior)) {
       current_time_ = r->current_time_;
-      time_step_ = r->time_step_;
       current_species_ = r->current_species_;
       previous_species_ = r->previous_species_;
+      //
+      time_step_ = r->time_step_;
+      time_subdivision_ = r->time_subdivision_;
       //
       rhs_ = r->rhs_;
       jacob_ = r->jacob_;
@@ -82,16 +86,29 @@ class RegulatoryNetwork : public Behavior {
   /// Method Run() contains the implementation for Runge-Khutta and Euler
   /// methods for solving ODE(s).
   void Run(Agent* agent) override {
+    std::cout << current_time_ << std::endl;
     // update the previous solution
     previous_species_ = current_species_;
     // initialize the time-integration scheme
-    if (ODE_solver::Rosenbrock == method_) {
+    if (ODE_solver::Euler == method_) {
+      const real_t dt = time_step_ / time_subdivision_;
+      // explicit time integration
+      for (int t=0; t<time_subdivision_; t++) {
+        // calculate the rate of change of all species
+        boost_vector_t dxdt(current_species_.size());
+        rhs_(current_species_, dxdt, current_time_+dt*(t+1));
+        // update the species
+        current_species_ += dxdt*dt;
+        // print-out the results
+        out_(current_species_, current_time_+dt*(t+1));
+      }
+    } else if (ODE_solver::Rosenbrock == method_) {
       auto stepper =
         boost::numeric::odeint::make_dense_output<boost::numeric::odeint::rosenbrock4<double>>(1.e-6,1.e-6);
       // perform time integration
       integrate_const(
         stepper, std::make_pair(rhs_ , jacob_), current_species_,
-        current_time_, current_time_+time_step_, time_step_/1000, out_
+        current_time_, current_time_+time_step_, time_step_/time_subdivision_, out_
       );
     } else if (ODE_solver::RungeKutta == method_) {
       auto stepper =
@@ -99,7 +116,7 @@ class RegulatoryNetwork : public Behavior {
       // perform time integration
       integrate_const(
         stepper, rhs_, current_species_,
-        current_time_, current_time_+time_step_, time_step_/1000, out_
+        current_time_, current_time_+time_step_, time_step_/time_subdivision_, out_
       );
     } else {
       Log::Fatal("RegulatoryNetwork::Run",
@@ -107,6 +124,7 @@ class RegulatoryNetwork : public Behavior {
     }
     // update the time of the regulatory network
     current_time_ += time_step_;
+    std::cout << current_time_ << std::endl;
   }
 
  protected:
@@ -125,6 +143,7 @@ class RegulatoryNetwork : public Behavior {
   real_t current_time_ = 0.0;
   /// Time-step for ODE(s) time integration
   real_t time_step_ = 1.0;
+  int time_subdivision_ = 100;
   /// Current solution of the species concentration
   boost_vector_t current_species_ = {};
   /// Previous solution of the species concentration

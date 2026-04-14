@@ -52,12 +52,13 @@ struct ODE_system : public ODE_parameters {
   : ODE_parameters(p), c_(cell), dg_(dg_map) {}
 
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) const {
-    auto& crd = c_->GetPosition();
-    auto& dg = dg_.find("cytokine")->second;
-    const real_t ecm_c = dg->GetValue(crd);
+    // auto& crd = c_->GetPosition();
+    // auto& dg = dg_.find("cytokine")->second;
+    // const real_t ecm_c = dg->GetValue(crd);
 
-    dxdt[0] = alpha() * x[1];
-    dxdt[1] = beta() * x[1] - beta() * x[1] * x[0] * x[0] - gamma() * x[0];
+    dxdt[0] = t * x[0] + 0.2;
+    dxdt[1] = t * x[1] * x[1];
+    dxdt[2] = t + x[2] + 3.0;
   }
 
  private:
@@ -70,13 +71,19 @@ struct ODE_jacobian : public ODE_parameters {
   : ODE_parameters(p), c_(cell), dg_(dg_map) {}
 
   void operator()(const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt) const {
-    jac(0, 0) = 0.0;
-    jac(0, 1) = alpha();
-    jac(1, 0) = -2.0 * beta() * x[0] * x[1] - gamma();
-    jac(1, 1) = beta() - beta() * x[0] * x[0];
+    jac(0, 0) = t;
+    jac(0, 1) = 0.0;
+    jac(0, 2) = 0.0;
+    jac(1, 0) = 0.0;
+    jac(1, 1) = t * 2.0 * x[1];
+    jac(1, 2) = 0.0;
+    jac(2, 0) = 0.0;
+    jac(2, 1) = 0.0;
+    jac(2, 2) = 1.0;
     //
     dfdt[0] = 0.0;
     dfdt[1] = 0.0;
+    dfdt[2] = 0.0;
   }
 
  private:
@@ -90,9 +97,9 @@ struct ODE_output {
 
   void operator()(const boost_vector_t& x, real_t t) {
     std::cout << c_->GetUid() << std::flush;
-    std::cout << " : " << c_->GetPosition() << std::flush;
+    // std::cout << " : " << c_->GetPosition() << std::flush;
     std::cout << " : " << t << std::flush;
-    std::cout << " : " << x[0] << ' ' << x[1] << std::endl;
+    std::cout << " : " << x[0] << ' ' << x[1] << ' ' << x[2] << std::endl;
   }
 
  private:
@@ -107,14 +114,15 @@ inline int Simulate(int argc, const char** argv) {
     param->bound_space = Param::BoundSpaceMode::kClosed;
     param->min_bound = -10.0;
     param->max_bound = +10.0;
-    param->export_visualization = true;
-    param->visualization_interval = 1;
-    param->visualize_agents["Cell"] = { "diameter_", "volume_" };
+    param->export_visualization = false;
+    // param->export_visualization = true;
+    // param->visualization_interval = 1;
+    // param->visualize_agents["Cell"] = { "diameter_", "volume_" };
     param->statistics = false;
     param->simulation_time_step = 1.0;
-    param->visualize_diffusion = { Param::VisualizeDiffusion{"cytokine", true, true} };
-    param->calculate_gradients = false;
-    param->diffusion_method = "euler";
+    // param->visualize_diffusion = { Param::VisualizeDiffusion{"cytokine", true, true} };
+    // param->calculate_gradients = false;
+    // param->diffusion_method = "euler";
   };
 
   Simulation sim(argc, argv, set_parameters);
@@ -124,7 +132,7 @@ inline int Simulate(int argc, const char** argv) {
   // time-step of the BioDynaMo simulator
   const real_t dt_BDM = sim.GetParam()->simulation_time_step;
   // time-step of the regulatory network solver
-  const real_t dt_RN = 1000.0;
+  const real_t dt_RN = 0.01;
   // parameters of the regulatory network
   const ODE_parameters rn_p(dt_RN, 1.e+0, 1.e+3, 1.e+0);
   // BioDynaMo's diffusion grid sample points in each dimension
@@ -140,8 +148,10 @@ inline int Simulate(int argc, const char** argv) {
   dg_m.insert(std::make_pair("cytokine", rm->GetDiffusionGrid("cytokine")));
 
   auto* cell = new Cell({0.01, 0.02, 0.03});
-  cell->SetDiameter(1.0);
-  cell->AddBehavior(new RegulatoryNetwork(rn_p.time_step(), {1., 1.},
+  cell->SetDiameter(30);
+  cell->SetAdherence(0.4);
+  cell->SetMass(1.0);
+  cell->AddBehavior(new RegulatoryNetwork(rn_p.time_step(), 100, {1., 5., 7.},
                                           ODE_solver::Rosenbrock,
                                           //ODE_solver::RungeKutta,
                                           ODE_system(cell,rn_p,dg_m),
@@ -150,7 +160,8 @@ inline int Simulate(int argc, const char** argv) {
 
   rm->AddAgent(cell);
 
-  sim.GetScheduler()->Simulate(1);
+  for (int s=0; s<10; s++)
+    sim.GetScheduler()->Simulate(1);
 
   std::cout << "Simulation completed successfully!\n" << std::endl;
   return 0;
