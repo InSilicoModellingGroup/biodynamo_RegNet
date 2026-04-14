@@ -29,15 +29,37 @@ enum Substances { kCytokine };
 // d[x1]/d[t] = beta * x1 * (1-x0^2) - gamma * x0
 
 struct ODE_system {
+  Agent* agent;
+  const std::map<std::string, DiffusionGrid*>& mdg;
+  const std::vector<real_t> param;
+
+  ODE_system(std::map<std::string, DiffusionGrid*>& m, const std::vector<real_t>& p)
+  : agent(0), mdg(m), param(p) { }
+
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) const {
-    dxdt[0] = t * x[0] + 0.2;
-    dxdt[1] = t * x[1] * x[1];
-    dxdt[2] = t + x[2] + 3.0;
+    // auto& xyz = agent.GetPosition();
+    auto dg = mdg.find("cytokine")->second;
+    const real_t cytokine = dg->GetValue({0,0,0});
+
+    dxdt[0] = t * x[0] + param[0];
+    dxdt[1] = t * x[1] * x[1] + param[1];
+    dxdt[2] = t + x[2] + param[2];
   }
 };
 
 struct ODE_jacobian {
+  Agent* agent;
+  const std::map<std::string, DiffusionGrid*>& mdg;
+  const std::vector<real_t> param;
+
+  ODE_jacobian(std::map<std::string, DiffusionGrid*>& m, const std::vector<real_t>& p)
+  : agent(0), mdg(m), param(p) { }
+
   void operator()(const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt) const {
+    // auto& xyz = agent.GetPosition();
+    auto dg = mdg.find("cytokine")->second;
+    const real_t cytokine = dg->GetValue({0,0,0});
+
     jac(0, 0) = t;
     jac(0, 1) = 0.0;
     jac(0, 2) = 0.0;
@@ -98,8 +120,8 @@ inline int Simulate(int argc, const char** argv) {
       std::make_unique<ConstantBoundaryCondition>(0)
     );
 
-  std::map<std::string, DiffusionGrid*> dg_m;
-  dg_m.insert(std::make_pair("cytokine", rm->GetDiffusionGrid("cytokine")));
+  std::map<std::string, DiffusionGrid*> dg_map;
+  dg_map.insert(std::make_pair("cytokine", rm->GetDiffusionGrid("cytokine")));
 
   auto* cell = new Cell({0.01, 0.02, 0.03});
   cell->SetDiameter(30);
@@ -109,7 +131,9 @@ inline int Simulate(int argc, const char** argv) {
                                           //ODE_solver::Euler,
                                           //ODE_solver::Rosenbrock,
                                           ODE_solver::RungeKutta,
-                                          ODE_system(), ODE_jacobian(), ODE_output()));
+                                          ODE_system(dg_map,{0.2,0.0,3.0}),
+                                          ODE_jacobian(dg_map,{0.2,0.0,3.0}),
+                                          ODE_output()));
   // add this cell into the simulation
   rm->AddAgent(cell);
 
