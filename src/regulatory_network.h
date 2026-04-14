@@ -43,8 +43,8 @@ class RegulatoryNetwork : public Behavior {
   RegulatoryNetwork() { AlwaysCopyToNew(); }
 
   RegulatoryNetwork(real_t dt, int n_dt, const std::vector<real_t>& x, ODE_solver m,
-      const std::function<void(const boost_vector_t&, boost_vector_t&, real_t)>& rhs,
-      const std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)>& jacob,
+      const std::function<void(const boost_vector_t&, boost_vector_t&, real_t, Agent*)>& rhs,
+      const std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&, Agent*)>& jacob,
       const std::function<void(const boost_vector_t&, real_t, Agent*)>& out) {
     AlwaysCopyToNew();
     SetInitialSpecies(x);
@@ -89,6 +89,15 @@ class RegulatoryNetwork : public Behavior {
     // update the previous solution
     previous_species_ = current_species_;
 
+    auto ode_rhs_ = [&](const boost_vector_t& x, boost_vector_t& dxdt, real_t t)
+    {
+      rhs_(x, dxdt, t, agent);
+    };
+    auto ode_jacob_ = [&](const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt)
+    {
+      jacob_(x, jac, t, dfdt, agent);
+    };
+
     // initialize the time-integration scheme
     if (ODE_solver::Euler == method_) {
       const real_t dt = time_step_ / time_subdivision_;
@@ -96,7 +105,7 @@ class RegulatoryNetwork : public Behavior {
       for (int t=0; t<time_subdivision_; t++) {
         // calculate the rate of change of all species
         boost_vector_t dxdt(current_species_.size());
-        rhs_(current_species_, dxdt, current_time_+dt*(t+1));
+        ode_rhs_(current_species_, dxdt, current_time_+dt*(t+1));
         // update the species
         current_species_ += dxdt*dt;
       }
@@ -107,7 +116,7 @@ class RegulatoryNetwork : public Behavior {
         boost::numeric::odeint::make_dense_output<ode_int>(1.e-6,1.e-6);
       // perform the time-integration
       integrate_const(
-        stepper, std::make_pair(rhs_ , jacob_), current_species_,
+        stepper, std::make_pair(ode_rhs_, ode_jacob_), current_species_,
         current_time_, current_time_+time_step_, time_step_/time_subdivision_
       );
     } else if (ODE_solver::RungeKutta == method_) {
@@ -117,7 +126,7 @@ class RegulatoryNetwork : public Behavior {
         boost::numeric::odeint::make_dense_output<ode_int>(1.e-6,1.e-6);
       // perform the time-integration
       integrate_const(
-        stepper, rhs_, current_species_,
+        stepper, ode_rhs_, current_species_,
         current_time_, current_time_+time_step_, time_step_/time_subdivision_
       );
     } else {
@@ -156,8 +165,8 @@ class RegulatoryNetwork : public Behavior {
   /// Method used for the ODE(s) numerical solution
   ODE_solver method_;
 
-  std::function<void(const boost_vector_t&, boost_vector_t&, real_t)> rhs_;
-  std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&)> jacob_;
+  std::function<void(const boost_vector_t&, boost_vector_t&, real_t, Agent*)> rhs_;
+  std::function<void(const boost_vector_t&, boost_matrix_t&, real_t, boost_vector_t&, Agent*)> jacob_;
   std::function<void(const boost_vector_t&, real_t, Agent*)> out_;
 };
 

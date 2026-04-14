@@ -20,7 +20,9 @@
 
 namespace bdm {
 
-enum Substances { kCytokine };
+enum Substances {
+  kCytokine
+};
 
 // Van der Pol oscillator
 //     https://juliareach.github.io/ReachabilityAnalysis.jl/dev/generated_examples/VanDerPol/#Van-der-Pol-oscillator
@@ -29,17 +31,17 @@ enum Substances { kCytokine };
 // d[x1]/d[t] = beta * x1 * (1-x0^2) - gamma * x0
 
 struct ODE_system {
-  Agent* agent;
   const std::map<std::string, DiffusionGrid*>& mdg;
   const std::vector<real_t> param;
 
   ODE_system(std::map<std::string, DiffusionGrid*>& m, const std::vector<real_t>& p)
-  : agent(0), mdg(m), param(p) { }
+  : mdg(m), param(p) { }
 
-  void operator()(const boost_vector_t& x, boost_vector_t& dxdt, real_t t) const {
-    // auto& xyz = agent.GetPosition();
+  void operator()(const boost_vector_t& x, boost_vector_t& dxdt, real_t t,
+                  Agent* agent) const {
+    auto& xyz = agent->GetPosition();
     auto dg = mdg.find("cytokine")->second;
-    const real_t cytokine = dg->GetValue({0,0,0});
+    const real_t cytokine = dg->GetValue(xyz);
 
     dxdt[0] = t * x[0] + param[0];
     dxdt[1] = t * x[1] * x[1] + param[1];
@@ -48,17 +50,17 @@ struct ODE_system {
 };
 
 struct ODE_jacobian {
-  Agent* agent;
   const std::map<std::string, DiffusionGrid*>& mdg;
   const std::vector<real_t> param;
 
   ODE_jacobian(std::map<std::string, DiffusionGrid*>& m, const std::vector<real_t>& p)
-  : agent(0), mdg(m), param(p) { }
+  : mdg(m), param(p) { }
 
-  void operator()(const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt) const {
-    // auto& xyz = agent.GetPosition();
+  void operator()(const boost_vector_t& x, boost_matrix_t& jac, real_t t, boost_vector_t& dfdt,
+                  Agent* agent) const {
+    auto& xyz = agent->GetPosition();
     auto dg = mdg.find("cytokine")->second;
-    const real_t cytokine = dg->GetValue({0,0,0});
+    const real_t cytokine = dg->GetValue(xyz);
 
     jac(0, 0) = t;
     jac(0, 1) = 0.0;
@@ -77,7 +79,8 @@ struct ODE_jacobian {
 };
 
 struct ODE_output {
-  void operator()(const boost_vector_t& x, real_t t, const Agent* a) {
+  void operator()(const boost_vector_t& x, real_t t,
+                  const Agent* a) {
     std::cout << a->GetUid() << std::flush;
     std::cout << " : " << a->GetPosition() << std::flush;
     std::cout << " : " << t << std::flush;
@@ -128,9 +131,9 @@ inline int Simulate(int argc, const char** argv) {
   cell->SetAdherence(0.4);
   cell->SetMass(1.0);
   cell->AddBehavior(new RegulatoryNetwork(dt_RN, 100, {1., 5., 7.},
-                                          //ODE_solver::Euler,
+                                          ODE_solver::Euler,
                                           //ODE_solver::Rosenbrock,
-                                          ODE_solver::RungeKutta,
+                                          //ODE_solver::RungeKutta,
                                           ODE_system(dg_map,{0.2,0.0,3.0}),
                                           ODE_jacobian(dg_map,{0.2,0.0,3.0}),
                                           ODE_output()));
