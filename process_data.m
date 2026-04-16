@@ -12,6 +12,16 @@ if false
 end
 
 if true
+    data = readmatrix('oscillator.csv');
+    
+    figure, hold on
+    plot(data(:,2),data(:,3),'r-')
+    plot(data(1,2),data(1,3),'r*')
+    axis equal
+    hold off
+end
+
+if false
     data = readmatrix('lorenz.csv');
     
     figure, hold on
