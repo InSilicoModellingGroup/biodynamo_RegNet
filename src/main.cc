@@ -14,7 +14,8 @@
 #include "sine.h"
 #include "lorenz.h"
 #include "bdm_ex1.h"
+#include "bdm_ex2.h"
 
 int main(int argc, const char** argv) {
-  return bdm::ex1::Simulate(argc, argv);
+  return bdm::ex2::Simulate(argc, argv);
 }

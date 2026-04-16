@@ -92,7 +92,6 @@ inline int Simulate(int argc, const char** argv) {
     param->min_bound =    0.0;
     param->max_bound = +100.0;
     param->export_visualization = false;
-    param->export_visualization = true;
     param->visualization_interval = 1;
     param->visualize_agents["Cell"] = { "diameter_", "volume_" };
     param->statistics = false;
