@@ -11,6 +11,8 @@
 // regarding copyright ownership.
 //
 // -----------------------------------------------------------------------------
-#include "biodynamo_RegNet.h"
+#include "bdm_ex1.h"
 
-int main(int argc, const char** argv) { return bdm::Simulate(argc, argv); }
+int main(int argc, const char** argv) {
+  return bdm::Simulate(argc, argv);
+}

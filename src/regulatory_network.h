@@ -26,7 +26,6 @@
 
 typedef boost::numeric::ublas::vector<double>  boost_vector_t;
 typedef boost::numeric::ublas::matrix<double>  boost_matrix_t;
-typedef std::map<std::string, bdm::DiffusionGrid*>  std_map_bdm_dg_t;
 
 namespace bdm {
 
@@ -105,7 +104,7 @@ class RegulatoryNetwork : public Behavior {
 
       // explicit Euler time-integration
       for (int i=0; i<time_subdivision_; i++) {
-        const real_t t = current_time_ + dt * (t+1);
+        const real_t t = current_time_ + dt * (1+i);
 
         // calculate the rate of change of all species
         boost_vector_t dxdt(current_species_.size());

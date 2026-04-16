@@ -11,8 +11,8 @@
 // regarding copyright ownership.
 //
 // -----------------------------------------------------------------------------
-#ifndef BIODYNAMO_REGNET_H_
-#define BIODYNAMO_REGNET_H_
+#ifndef BDM_EX1_H_
+#define BDM_EX1_H_
 
 #include "biodynamo.h"
 
@@ -23,12 +23,6 @@ namespace bdm {
 enum Substances {
   kProtein
 };
-
-// Van der Pol oscillator
-//     https://juliareach.github.io/ReachabilityAnalysis.jl/dev/generated_examples/VanDerPol/#Van-der-Pol-oscillator
-//
-// d[x0]/d[t] = alpha * x1
-// d[x1]/d[t] = beta * x1 * (1-x0^2) - gamma * x0
 
 struct ODE_system {
   const std::map<std::string, DiffusionGrid*>& mdg;
@@ -89,7 +83,7 @@ struct ODE_output {
 };
 
 inline int Simulate(int argc, const char** argv) {
-  // https://biodynamo.github.io/api/structbdm_1_1Param.html
+  // set-up the BioDynaMo simulation parameters
   auto set_parameters = [](Param* param) {
     param->use_progress_bar = false;
     param->bound_space = Param::BoundSpaceMode::kOpen;
@@ -152,6 +146,6 @@ inline int Simulate(int argc, const char** argv) {
   return 0;
 }
 
-}  // namespace bdm
+} // namespace bdm
 
-#endif // BIODYNAMO_REGNET_H_
+#endif // BDM_EX1_H_
