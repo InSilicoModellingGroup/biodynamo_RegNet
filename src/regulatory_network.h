@@ -62,18 +62,18 @@ class RegulatoryNetwork : public Behavior {
   void Initialize(const NewAgentEvent& event) override {
     Base::Initialize(event);
 
-    if (auto* r = dynamic_cast<RegulatoryNetwork*>(event.existing_behavior)) {
-      current_time_ = r->current_time_;
-      current_species_ = r->current_species_;
-      previous_species_ = r->previous_species_;
+    if (auto* other = dynamic_cast<RegulatoryNetwork*>(event.existing_behavior)) {
+      current_time_ = other->current_time_;
+      current_species_ = other->current_species_;
+      previous_species_ = other->previous_species_;
       //
-      time_step_ = r->time_step_;
-      time_subdivision_ = r->time_subdivision_;
+      time_step_ = other->time_step_;
+      time_subdivision_ = other->time_subdivision_;
       //
-      rhs_ = r->rhs_;
-      jacob_ = r->jacob_;
-      out_ = r->out_;
-      method_ = r->method_;
+      rhs_ = other->rhs_;
+      jacob_ = other->jacob_;
+      out_ = other->out_;
+      method_ = other->method_;
     } else {
       Log::Fatal("RegulatoryNetwork::EventConstructor",
                  "other was not of type RegulatoryNetwork");
