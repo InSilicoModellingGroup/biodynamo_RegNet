@@ -74,11 +74,12 @@ struct ODE_jacobian {
 
 struct ODE_output {
   void operator()(const boost_vector_t& x, real_t t,
-                  const Agent* a) {
-    std::cout << a->GetUid() << std::flush;
-    std::cout << " : " << a->GetPosition() << std::flush;
-    std::cout << " : " << t << std::flush;
-    std::cout << " : " << x[0] << ' ' << x[1] << ' ' << x[2] << std::endl;
+                  const Agent* agent) {
+    auto& xyz = agent->GetPosition();
+    std::clog << agent->GetUid()
+              << ',' << xyz[0] << ',' << xyz[1] << ',' << xyz[2]
+              << ',' << t << ',' << x[0] << ',' << x[1] << ',' << x[2];
+    std::clog << std::endl;
   }
 };
 

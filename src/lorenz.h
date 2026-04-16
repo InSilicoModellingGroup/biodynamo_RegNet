@@ -8,15 +8,15 @@
 #include "boost/phoenix/core.hpp"
 #include "boost/phoenix/operator.hpp"
 
-// https://en.wikipedia.org/wiki/Lorenz_system
-const double sigma = 10.0;
-const double rho = 28.0;
-const double beta = 8.0 / 3.0;
-
 typedef boost::numeric::ublas::vector<double>  boost_vector_t;
 typedef boost::numeric::ublas::matrix<double>  boost_matrix_t;
 
 namespace lorenz {
+
+// https://en.wikipedia.org/wiki/Lorenz_system
+const double sigma = 10.0;
+const double rho = 28.0;
+const double beta = 8.0 / 3.0;
 
 struct ODE_system {
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, double t) const {
@@ -38,9 +38,7 @@ struct ODE_jacobian {
     jac(2, 1) = x[0];
     jac(2, 2) = -beta;
     //
-    dfdt[0] = 0.0;
-    dfdt[1] = 0.0;
-    dfdt[2] = 0.0;
+    dfdt[0] = dfdt[1] = dfdt[2] = 0.0;
   }
 };
 

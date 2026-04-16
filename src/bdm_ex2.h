@@ -53,8 +53,12 @@ struct Lorenz_jac_ {
 };
 
 struct Lorenz_out_ {
-  void operator()(const boost_vector_t& x, real_t t, const Agent* a) {
-    std::clog << t << ',' << x[0] << ',' << x[1] << ',' << x[2] << std::endl;
+  void operator()(const boost_vector_t& x, real_t t, const Agent* agent) {
+    auto& xyz = agent->GetPosition();
+    std::clog << agent->GetUid()
+              << ',' << xyz[0] << ',' << xyz[1] << ',' << xyz[2]
+              << ',' << t << ',' << x[0] << ',' << x[1] << ',' << x[2];
+    std::clog << std::endl;
   }
 };
 

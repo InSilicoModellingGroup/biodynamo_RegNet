@@ -8,12 +8,12 @@
 #include "boost/phoenix/core.hpp"
 #include "boost/phoenix/operator.hpp"
 
-const double A = 10.0;
-
 typedef boost::numeric::ublas::vector<double>  boost_vector_t;
 typedef boost::numeric::ublas::matrix<double>  boost_matrix_t;
 
 namespace sine {
+
+const double A = 10.0;
 
 struct ODE_system {
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, double t) const {
