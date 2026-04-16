@@ -100,34 +100,43 @@ class RegulatoryNetwork : public Behavior {
 
     // initialize the time-integration scheme
     if (ODE_solver::Euler == method_) {
+      // define the fixed time increment
       const real_t dt = time_step_ / time_subdivision_;
+
       // explicit Euler time-integration
-      for (int t=0; t<time_subdivision_; t++) {
+      for (int i=0; i<time_subdivision_; i++) {
+        const real_t t = current_time_ + dt * (t+1);
+
         // calculate the rate of change of all species
         boost_vector_t dxdt(current_species_.size());
-        ode_rhs_(current_species_, dxdt, current_time_+dt*(t+1));
+        ode_rhs_(current_species_, dxdt, t);
+
         // update the species
-        current_species_ += dxdt*dt;
+        current_species_ += dxdt * dt;
       }
     } else if (ODE_solver::Rosenbrock == method_) {
       typedef boost::numeric::odeint::rosenbrock4<double> ode_int;
+
       // set-up the Rosenbrock integrator
       auto stepper =
         boost::numeric::odeint::make_dense_output<ode_int>(1.e-6,1.e-6);
+
       // perform the time-integration
       integrate_const(
         stepper, std::make_pair(ode_rhs_, ode_jacob_), current_species_,
-        current_time_, current_time_+time_step_, time_step_/time_subdivision_
+        current_time_, (current_time_+time_step_), (time_step_/time_subdivision_)
       );
     } else if (ODE_solver::RungeKutta == method_) {
       typedef boost::numeric::odeint::runge_kutta_dopri5<boost_vector_t> ode_int;
+
       // set-up the Runge-Kutta integrator
       auto stepper =
         boost::numeric::odeint::make_dense_output<ode_int>(1.e-6,1.e-6);
+
       // perform the time-integration
       integrate_const(
         stepper, ode_rhs_, current_species_,
-        current_time_, current_time_+time_step_, time_step_/time_subdivision_
+        current_time_, (current_time_+time_step_), (time_step_/time_subdivision_)
       );
     } else {
       Log::Fatal("RegulatoryNetwork::Run",
