@@ -11,8 +11,10 @@
 // regarding copyright ownership.
 //
 // -----------------------------------------------------------------------------
+#include "sine.h"
+#include "lorenz.h"
 #include "bdm_ex1.h"
 
 int main(int argc, const char** argv) {
-  return bdm::Simulate(argc, argv);
+  return bdm::ex1::Simulate(argc, argv);
 }

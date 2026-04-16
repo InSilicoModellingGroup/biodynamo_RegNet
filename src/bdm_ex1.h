@@ -82,6 +82,8 @@ struct ODE_output {
   }
 };
 
+namespace ex1 {
+
 inline int Simulate(int argc, const char** argv) {
   // set-up the BioDynaMo simulation parameters
   auto set_parameters = [](Param* param) {
@@ -145,6 +147,8 @@ inline int Simulate(int argc, const char** argv) {
   std::cout << "Simulation completed successfully!\n" << std::endl;
   return 0;
 }
+
+} // namespace ex1
 
 } // namespace bdm
 
