@@ -118,7 +118,7 @@ class Trajectory : public RegulatoryNetwork {
       // now set its new position
       cell->SetPosition(xyz);
     } else {
-      Log::Fatal("Trajectory::Run", "Agent is not a MyCell type");
+      Log::Fatal("Trajectory::Run", "agent is not of 'MyCell' type");
     }
   }
 

@@ -11,7 +11,7 @@ if false
     hold off
 end
 
-if true
+if false
     data = readmatrix('oscillator.csv');
     
     figure, hold on
