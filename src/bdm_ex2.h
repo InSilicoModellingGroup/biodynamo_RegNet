@@ -20,6 +20,32 @@
 
 namespace bdm {
 
+class MyCell : public Cell {
+  BDM_AGENT_HEADER(MyCell, Cell, 1);
+
+  public:
+    MyCell() {}
+    explicit MyCell(const Real3& position) : Base(position), trail_(0.0) {}
+    virtual ~MyCell() {}
+
+    void Initialize(const NewAgentEvent& event) override {
+      Base::Initialize(event);
+
+      if (auto* mother = dynamic_cast<MyCell*>(event.existing_agent)) {
+        if (event.GetUid() == CellDivisionEvent::kUid) {
+          // copy properties from mother to daughter
+        }
+      }
+    }
+
+    real_t GetTrail() const { return trail_; }
+    void SetTrail(real_t t) { trail_ += t; }
+
+  private:
+    /// keep track of the trail of the agent
+    real_t trail_;
+};
+
 struct Lorenz_rhs_ {
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, double t, Agent* agent) const {
     dxdt[0] = sigma * x[1] - sigma * x[0];
@@ -70,19 +96,12 @@ class Trajectory : public RegulatoryNetwork {
 
   Trajectory(real_t dt, int n_dt, const std::vector<real_t>& x)
     : RegulatoryNetwork(dt, n_dt, x, ODE_solver::Rosenbrock,
-                        Lorenz_rhs_(), Lorenz_jac_(), Lorenz_out_()) { trail_=0.0; }
+                        Lorenz_rhs_(), Lorenz_jac_(), Lorenz_out_()) { }
 
   virtual ~Trajectory() = default;
 
   void Initialize(const NewAgentEvent& event) override {
     Base::Initialize(event);
-
-    if (auto* other = dynamic_cast<Trajectory*>(event.existing_behavior)) {
-      trail_ = other->trail_;
-    } else {
-      Log::Fatal("Trajectory::EventConstructor",
-                 "other was not of type Trajectory");
-    }
   }
 
   void Run(Agent* agent) override {
@@ -92,13 +111,17 @@ class Trajectory : public RegulatoryNetwork {
     for (int i=0; i<3; i++)
       xyz[i] = this->GetSpecie(i);
 
-    auto* cell = bdm_static_cast<Cell*>(agent);
-    cell->SetPosition(xyz);
+    if (auto* cell = dynamic_cast<MyCell*>(agent)) {
+      Real3 diff = xyz - cell->GetPosition();
+      // calculate the cell trail
+      cell->SetTrail(diff.Norm());
+      // now set its new position
+      cell->SetPosition(xyz);
+    } else {
+      Log::Fatal("MyGrowth::Run", "Agent is not a Cell");
+    }
   }
 
- private:
-   /// keep track of the trail of the agent
-   real_t trail_;
 };
 
 namespace ex2 {
@@ -111,8 +134,8 @@ inline int Simulate(int argc, const char** argv) {
     param->min_bound =    0.0;
     param->max_bound = +100.0;
     param->export_visualization = true;
-    param->visualization_interval = 1;
-    param->visualize_agents["Cell"] = { "diameter_", "volume_" };
+    param->visualization_interval = 10;
+    param->visualize_agents["MyCell"] = { "diameter_", "volume_", "trail_" };
     param->statistics = false;
     param->simulation_time_step = 1.0;
   };
@@ -125,12 +148,12 @@ inline int Simulate(int argc, const char** argv) {
   {
     Real3 xyz{1.0, 1.0, 1.0};
 
-    Cell* cell = new Cell();
-    cell->SetDiameter(1.0);
-    cell->SetPosition(xyz);
-    cell->AddBehavior(new Trajectory(dt_RN, 10, {xyz[0], xyz[1], xyz[2]}));
+    MyCell* c = new MyCell();
+    c->SetDiameter(1.0);
+    c->SetPosition(xyz);
+    c->AddBehavior(new Trajectory(dt_RN, 10, {xyz[0], xyz[1], xyz[2]}));
 
-    sim.GetExecutionContext()->AddAgent(cell);
+    sim.GetExecutionContext()->AddAgent(c);
   }
 
   for (int s=0; s<3000; s++)
