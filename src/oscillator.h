@@ -13,14 +13,13 @@ typedef boost::numeric::ublas::matrix<double>  boost_matrix_t;
 
 namespace oscillator {
 
-// https://en.wikipedia.org/wiki/Van_der_Pol_oscillator
-double mu = 100.0;
-
 struct ODE_system {
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, double t) const {
     dxdt[0] = x[1];
     dxdt[1] = mu * x[1] - mu * x[0] * x[0] * x[1] - x[0];
   }
+  // https://en.wikipedia.org/wiki/Van_der_Pol_oscillator
+  double mu = 100.0;
 };
 
 struct ODE_jacobian {
@@ -32,6 +31,8 @@ struct ODE_jacobian {
     //
     dfdt[0] = dfdt[1] = 0.0;
   }
+  // https://en.wikipedia.org/wiki/Van_der_Pol_oscillator
+  double mu = 100.0;
 };
 
 struct ODE_output {

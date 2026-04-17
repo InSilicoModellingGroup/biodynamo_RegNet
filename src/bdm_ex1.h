@@ -123,19 +123,19 @@ inline int Simulate(int argc, const char** argv) {
   dg_map.insert(std::make_pair("protein", rm->GetDiffusionGrid("protein")));
 
   auto generate_cells = [&](const Real3& xyz) {
-    Cell* cell = new Cell();
-    cell->SetDiameter(1.0);
-    cell->SetAdherence(0.4);
-    cell->SetMass(1.0);
-    cell->SetPosition(xyz);
-    cell->AddBehavior(new RegulatoryNetwork(dt_RN, 1000, {1., 5., 7.},
-                                            //ODE_solver::Euler,
-                                            //ODE_solver::Rosenbrock,
-                                            ODE_solver::RungeKutta,
-                                            ODE_system(dg_map,{0.2,0.1,3.0}),
-                                            ODE_jacobian(dg_map,{0.2,0.1,3.0}),
-                                            ODE_output()));
-    return cell;
+    Cell* c = new Cell();
+    c->SetDiameter(1.0);
+    c->SetAdherence(0.4);
+    c->SetMass(1.0);
+    c->SetPosition(xyz);
+    c->AddBehavior(new RegulatoryNetwork(dt_RN, 1000, {1., 5., 7.},
+                                         //ODE_solver::Euler,
+                                         //ODE_solver::Rosenbrock,
+                                         ODE_solver::RungeKutta,
+                                         ODE_system(dg_map,{0.2,0.1,3.0}),
+                                         ODE_jacobian(dg_map,{0.2,0.1,3.0}),
+                                         ODE_output()));
+    return c;
   };
 
   int n_cells = 1;

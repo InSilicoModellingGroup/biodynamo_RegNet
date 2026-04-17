@@ -13,17 +13,16 @@ typedef boost::numeric::ublas::matrix<double>  boost_matrix_t;
 
 namespace lorenz {
 
-// https://en.wikipedia.org/wiki/Lorenz_system
-const double sigma = 10.0;
-const double rho = 28.0;
-const double beta = 8.0 / 3.0;
-
 struct ODE_system {
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, double t) const {
     dxdt[0] = sigma * x[1] - sigma * x[0];
     dxdt[1] = rho * x[0] - x[1] - x[0] * x[2];
     dxdt[2] = -beta * x[2] + x[0] * x[1];
   }
+  // https://en.wikipedia.org/wiki/Lorenz_system
+  const double sigma = 10.0;
+  const double rho = 28.0;
+  const double beta = 8.0 / 3.0;
 };
 
 struct ODE_jacobian {
@@ -31,7 +30,7 @@ struct ODE_jacobian {
     jac(0, 0) = -sigma;
     jac(0, 1) = sigma;
     jac(0, 2) = 0.0;
-    jac(1, 0) = rho  - x[2];
+    jac(1, 0) = rho - x[2];
     jac(1, 1) = -1.0;
     jac(1, 2) = -x[0];
     jac(2, 0) = x[1];
@@ -40,6 +39,10 @@ struct ODE_jacobian {
     //
     dfdt[0] = dfdt[1] = dfdt[2] = 0.0;
   }
+  // https://en.wikipedia.org/wiki/Lorenz_system
+  const double sigma = 10.0;
+  const double rho = 28.0;
+  const double beta = 8.0 / 3.0;
 };
 
 struct ODE_output {

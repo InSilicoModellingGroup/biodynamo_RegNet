@@ -13,12 +13,12 @@ typedef boost::numeric::ublas::matrix<double>  boost_matrix_t;
 
 namespace sine {
 
-const double A = 10.0;
-
 struct ODE_system {
   void operator()(const boost_vector_t& x, boost_vector_t& dxdt, double t) const {
     dxdt[0] = A*cos(t);
   }
+  //
+  const double A = 10.0;
 };
 
 struct ODE_output {
